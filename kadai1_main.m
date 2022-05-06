@@ -1,4 +1,4 @@
-function main(filename,rep,K_const)
+function kadai1_main(filename,rep,K_const)
 
 fprintf(filename);
 input = importdata("./input/" + filename);
