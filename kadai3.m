@@ -8,8 +8,8 @@ teacher2_filename = "./scaleData/gpo_tp_scale.wav";
 windowshift = 5;
 windowlength = 1500;
 windowname = "Hann";
-F = DGTtool('windowShift',windowshift,'windowLength',windowlength,'windowName',windowname);
-
+%F = DGTtool('windowShift',windowshift,'windowLength',windowlength,'windowName',windowname);
+F = DGTtool('windowName',windowname);
 
 data_vec = audioread(data_filename);
 [teacher1_vec,fs] = audioread(teacher1_filename);
@@ -19,25 +19,31 @@ spectrogram = F(data_vec);
 amplitude_spec = abs(spectrogram);
 theta_spec = angle(spectrogram);
 
+teach1_spec = abs(F(teacher1_vec));
+teach2_spec = abs(F(teacher2_vec));
+
 rep = 30;
 K_const = 5;
 
 %なんか知らんけど教師は絶対値とってみた
-[output1,output2] = main(amplitude_spec,abs(teacher1_vec),abs(teacher2_vec),rep,K_const);
+[output1,output2] = main(amplitude_spec,teach1_spec,teach2_spec,rep,K_const);
 
 audiowrite(output1,fs);
 audiowrite(output2,fs);
 
-function [output1,output2] = main(data_vec,teacher1_vec,teacher2_vec,rep,K_const)
+function [output1,output2] = main(data,teacher1,teacher2,rep,K_const)
 
-[tate,yoko] = size(data_vec);
-D = data_vec;
+[tate,yoko] = size(data);
+D = data;
 
-W1 = repmat(teacher1_vec,1,K_const);
-W2 = repmat(teacher2_vec,1,K_const);
+%W1 = repmat(teacher1,1,K_const);
+%W2 = repmat(teacher2,1,K_const);
 
-G1 = rand(K_const,tate);
-G2 = rand(K_const,tate);
+W1 = teacher1;
+W2 = teacher2;
+
+G1 = rand(K_const,yoko);
+G2 = rand(K_const,yoko);
 
 distance = zeros(rep,1);
 
