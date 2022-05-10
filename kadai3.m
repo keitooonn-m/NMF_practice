@@ -1,64 +1,56 @@
 clc;clear;
 
 addpath("github_repo");
-data_filename = "./input/piano+trumpet.wav";
-teacher1_filename = "./scaleData/gpo_pf_scale.wav";
-teacher2_filename = "./scaleData/gpo_tp_scale.wav";
+addpath("function");
+addpath("input");
+data_filename = "./input/hr+cl.wav";
+teacher1_filename = "./scaleData/gpo_cl_scale.wav";
+teacher2_filename = "./scaleData/gpo_hr_scale.wav";
+rep = 512;
+K_const = 32;
 
-windowshift = 5;
-windowlength = 1500;
-windowname = "Hann";
-%F = DGTtool('windowShift',windowshift,'windowLength',windowlength,'windowName',windowname);
+windowname = "Blackman";
 F = DGTtool('windowName',windowname);
 
 data_vec = audioread(data_filename);
 [teacher1_vec,fs] = audioread(teacher1_filename);
 [teacher2_vec, ~] = audioread(teacher2_filename);
 
-data_amp_spec = abs(F(data_vec));
+Y = abs(F(data_vec));
 data_theta_spec = angle(F(data_vec));
 
-F.plot(teacher1_vec,fs);
+D1 = abs(F(teacher1_vec));
+D2 = abs(F(teacher2_vec));
 
-spec1 = F(teacher1_vec);
+%基底ベクトルとる
+[W1,~,~] =NMF_KL_auto(D1,rep,K_const);
+[W2,~,~] =NMF_KL_auto(D2,rep,K_const);
 
-teacher1_spec = [spec1(:,1),];
+%分解する
+[G1,G2,distance] = NMF_KL_bunri(Y,W1,W2,rep);
+plot(distance);
 
+%位相追加
+output1 = W1*G1  ./ (W1*G1 + W2*G2) .* F(data_vec);
+output2 = W2*G2  ./ (W1*G1 + W2*G2) .* F(data_vec);
 
-teach1_amp_spec = abs(F(teacher1_vec));
-teach2_amp_spec = abs(F(teacher2_vec));
+%逆STFT
+result_data1 = F.pinv(output1);
+result_data2 = F.pinv(output2);
 
-rep = 30;
-K_const = 5;
+%ファイル出力する
+audiowrite("./output/kadai3_output1.wav",result_data1,fs);
+audiowrite("./output/kadai3_output2.wav",result_data2,fs);
 
-%なんか知らんけど教師は絶対値とってみた
-%[output1,output2,distance] = main(amplitude_spec,teach1_spec,teach2_spec,rep);
+%SDR確認する
+addpath("./bss_eval");
+true_data1 = audioread("./scaleData/gpo_cl_scale.wav");
+true_data2 = audioread("./scaleData/gpo_hr_scale.wav");
+true_data = [true_data1,true_data2];
 
-%audiowrite(output1,fs);
-%audiowrite(output2,fs);
+%なんか知らんけど0ぱってぃんぐしたデータのほうが短い
+result_data = [result_data1,result_data2];
+[length,~] = size(result_data);
 
-function [output1,output2,distance] = main(data,teacher1,teacher2,rep)
-
-[tate,yoko] = size(data);
-[~,K_const] = size(teacher1);
-D = data;
-
-W1 = teacher1;
-W2 = teacher2;
-
-G1 = rand(K_const,yoko);
-G2 = rand(K_const,yoko);
-
-distance = zeros(rep,1);
-
-for i = 1:rep
-    G1 = (G1) .* ((W1')*(D)) ./ ((W1') * (W1*G1 + W2*G2));
-    G2 = (G2) .* ((W2')*(D)) ./ ((W2') * (W1*G1 + W2*G2));
-
-    distance(rep) = sum((D-W1*G1-W2*G2).^2,"all");
-end
-
-output1 = W1*G1;
-output2 = W2*G2;
-
-end
+bss_eval_sources(result_data(:,1)',true_data(1:length,1)')
+bss_eval_sources(result_data(:,2)',true_data(1:length,2)')
