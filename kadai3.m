@@ -15,29 +15,33 @@ data_vec = audioread(data_filename);
 [teacher1_vec,fs] = audioread(teacher1_filename);
 [teacher2_vec, ~] = audioread(teacher2_filename);
 
-spectrogram = F(data_vec);
-amplitude_spec = abs(spectrogram);
-theta_spec = angle(spectrogram);
+data_amp_spec = abs(F(data_vec));
+data_theta_spec = angle(F(data_vec));
 
-teach1_spec = abs(F(teacher1_vec));
-teach2_spec = abs(F(teacher2_vec));
+F.plot(teacher1_vec,fs);
+
+spec1 = F(teacher1_vec);
+
+teacher1_spec = [spec1(:,1),];
+
+
+teach1_amp_spec = abs(F(teacher1_vec));
+teach2_amp_spec = abs(F(teacher2_vec));
 
 rep = 30;
 K_const = 5;
 
 %なんか知らんけど教師は絶対値とってみた
-[output1,output2] = main(amplitude_spec,teach1_spec,teach2_spec,rep,K_const);
+%[output1,output2,distance] = main(amplitude_spec,teach1_spec,teach2_spec,rep);
 
-audiowrite(output1,fs);
-audiowrite(output2,fs);
+%audiowrite(output1,fs);
+%audiowrite(output2,fs);
 
-function [output1,output2] = main(data,teacher1,teacher2,rep,K_const)
+function [output1,output2,distance] = main(data,teacher1,teacher2,rep)
 
 [tate,yoko] = size(data);
+[~,K_const] = size(teacher1);
 D = data;
-
-%W1 = repmat(teacher1,1,K_const);
-%W2 = repmat(teacher2,1,K_const);
 
 W1 = teacher1;
 W2 = teacher2;
